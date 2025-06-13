@@ -181,7 +181,7 @@ export default function Index({
         <Box mb={10}>
           <VStack spacing={10}>
             <Box w="100%" maxW="800px" mx="auto">
-              {!userState || userState?.value === "idle" && (
+              {(!userState || userState?.value === "idle") && (
                 <VStack spacing={8}>
                   <VStack spacing={4} textAlign="center">
                     <Heading as="h1" size="xl">
