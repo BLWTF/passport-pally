@@ -1,5 +1,3 @@
-import { Express } from "express";
-
 export interface User {
   id: string;
   googleProviderAccountId?: string;
@@ -11,7 +9,7 @@ export interface AuthUser extends User {
   blocked?: boolean;
 }
 
-export interface UserState {
+export interface State {
   userPhoto: Express.Multer.File | null;
   selectedPhoto: string | null;
   generatedPhotos: { id: string; data: string }[];
@@ -25,7 +23,11 @@ export interface UserState {
   };
 }
 
-export type UserStatePreview = UserState & {
+export interface UserState extends State {
+  value: string;
+}
+
+export type UserStatePreview = Omit<UserState, 'userPhoto | generatedPhotos'> & {
   userPhoto: 'preview';
   generatedPhotos: { id: string, data: 'preview'}[];
 }

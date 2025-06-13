@@ -33,6 +33,7 @@ import { authOptions } from "./api/auth/[...nextauth]";
 import { AuthSession } from "@/lib/types/session";
 import { getUserStatePreview } from "@/lib/api/users";
 import StateImage from "@/components/state-image";
+import { ArrowBigDown } from "lucide-react";
 
 export async function getServerSideProps({
   req,
@@ -180,7 +181,7 @@ export default function Index({
         <Box mb={10}>
           <VStack spacing={10}>
             <Box w="100%" maxW="800px" mx="auto">
-              {!imagePreview && (
+              {userState?.value === "idle" && (
                 <VStack spacing={8}>
                   <VStack spacing={4} textAlign="center">
                     <Heading as="h1" size="xl">
@@ -192,9 +193,12 @@ export default function Index({
                     </Text>
                   </VStack>
 
-                  <UploadArea onFileSelect={handleFileSelect} />
+                  <UploadArea
+                    onFileSelect={handleFileSelect}
+                    isUploading={isUploading}
+                  />
 
-                  <Box textAlign="center">
+                  {/* <Box textAlign="center">
                     <Text fontWeight="medium" mb={2}>
                       Examples of good photos to upload:
                     </Text>
@@ -215,11 +219,11 @@ export default function Index({
                         borderRadius="md"
                       />
                     </Flex>
-                  </Box>
+                  </Box> */}
                 </VStack>
               )}
 
-              {imagePreview && userState?.generatedPhotos.length === 0 && (
+              {userState?.value === "photoUploaded" && (
                 <Flex gap={8} direction={{ base: "column", md: "row" }}>
                   <Box flex={1}>
                     <VStack spacing={6} align="start">
@@ -326,7 +330,7 @@ export default function Index({
                 </Flex>
               )}
 
-              {userState && userState.generatedPhotos.length > 0 && (
+              {userState?.value === "generating" && (
                 <VStack spacing={8} align="center">
                   <VStack spacing={3} textAlign="center">
                     <Heading size="lg">Your Passport Photo is Ready!</Heading>
@@ -368,7 +372,7 @@ export default function Index({
                     </VStack>
 
                     <Box fontSize="24px" color="gray.400">
-                      →
+                     <ArrowBigDown />
                     </Box>
 
                     <SimpleGrid columns={{ base: 2, md: 3 }} gap={5}>

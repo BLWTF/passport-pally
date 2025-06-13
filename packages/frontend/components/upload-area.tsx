@@ -1,11 +1,13 @@
-import { Box, Heading, Input, VStack, Text } from "@chakra-ui/react";
+import { Box, Heading, Input, Progress, VStack, Text } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import { ChangeEvent, DragEvent, useState } from "react";
 
 const UploadArea = ({
   onFileSelect,
+  isUploading,
 }: {
   onFileSelect: (e: File) => void;
+  isUploading: boolean;
 }) => {
   const [dragActive, setDragActive] = useState(false);
 
@@ -87,6 +89,15 @@ const UploadArea = ({
           <Text fontSize="sm" color="gray.400" mt={2}>
             Supports JPG, PNG, HEIC - Max 10MB
           </Text>
+          {isUploading && (
+            <Progress
+              size="sm"
+              isIndeterminate
+              colorScheme="blue"
+              w="100%"
+              mt={4}
+            />
+          )}
         </Box>
       </VStack>
     </Box>

@@ -18,3 +18,10 @@ export function base64toBlob(base64: string, fn: (result: string) => void) {
   const buffer = Buffer.from(base64, 'base64');
   reader.readAsDataURL(new Blob([buffer]));
 }
+
+export function parseState(state: string | object) {
+  if (typeof state === 'object') {
+    return Object.keys(state)[0];
+  }
+  return state;
+}

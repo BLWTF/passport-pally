@@ -5,7 +5,7 @@
 import { Injectable } from '@nestjs/common';
 import { uniqueId } from 'lodash';
 import GeminiService from 'src/gemini/gemini.service';
-import { UserState } from 'src/types/users';
+import { State } from 'src/types/users';
 import {
   AnyActorRef,
   assign,
@@ -107,7 +107,7 @@ export default class StateService {
     actors: { generatePassport: this.generatePassport },
     actions: {},
     types: {
-      context: {} as UserState,
+      context: {} as State,
     },
   }).createMachine({
     id: 'passportPhoto',
@@ -148,7 +148,6 @@ export default class StateService {
         },
       },
       photoUploaded: {
-        entry: log('In photoUploaded'),
         on: {
           GENERATE_PHOTO: {
             target: 'generating',
@@ -190,7 +189,6 @@ export default class StateService {
             }),
           },
           generationComplete: {
-            entry: log('In generationComplete'),
             guard: ({ context }) => {
               return context.generationRequests.length === 0;
             },
@@ -207,7 +205,7 @@ export default class StateService {
             },
           },
           generationError: {
-            entry: log('In generationError'),
+            entry: log(''),
             guard: ({ context }) => {
               return (
                 context.generationRequests.length === 0 &&
@@ -270,10 +268,10 @@ export default class StateService {
             guard: ({ context }) => context.generationRequests.length === 0,
           },
         },
-        always: {
-          target: 'photoUploaded',
-          guard: ({ context }) => context.generationRequests.length === 0,
-        },
+        // always: {
+        //   target: 'photoUploaded',
+        //   guard: ({ context }) => context.generationRequests.length === 0,
+        // },
       },
     },
   });

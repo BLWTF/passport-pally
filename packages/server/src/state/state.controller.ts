@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -14,7 +15,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import StateService from './state.service';
 import { Response } from 'express';
-import { UserState } from 'src/types/users';
+import { parseState } from 'src/helpers';
 
 @Controller()
 export default class StateController {
@@ -23,8 +24,11 @@ export default class StateController {
   @Get('/state')
   userState(@Req() req: any, @Res() res: Response) {
     const userActor = this.stateService.activeUser(req.user.sub);
-    console.log('state', userActor.getSnapshot().value);
-    const state = userActor.getSnapshot().context as UserState;
+
+    const state = {
+      ...userActor.getSnapshot().context,
+      value: parseState(userActor.getSnapshot().value),
+    };
     const statePreview = {
       ...state,
       // userPhoto: state.userPhoto !== null ? 'preview' : null,
@@ -47,8 +51,8 @@ export default class StateController {
     res.write(`data: ${JSON.stringify(state)}\n\n`);
 
     const subscription = userActor.subscribe((state) => {
-      const userState = state.context as UserState;
-      console.log('state', state.value);
+      const userState = { ...state.context, value: parseState(state.value) };
+
       const userStatePreview = {
         ...userState,
         // userPhoto: userState.userPhoto !== null ? 'preview' : null,
@@ -70,8 +74,11 @@ export default class StateController {
   @Get('/state/preview')
   userStatePreview(@Req() req: any) {
     const userActor = this.stateService.activeUser(req.user.sub);
-    const userState = userActor.getSnapshot().context;
-    const state = {
+    const userState = {
+      ...userActor.getSnapshot().context,
+      value: parseState(userActor.getSnapshot().value),
+    };
+    const userStatePreview = {
       ...userState,
       userPhoto: userState.userPhoto !== null ? 'preview' : null,
       generatedPhotos: userState.generatedPhotos.map((e) => ({
@@ -79,8 +86,7 @@ export default class StateController {
         data: 'preview',
       })),
     };
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return state;
+    return userStatePreview;
   }
 
   @Get('/generate')
