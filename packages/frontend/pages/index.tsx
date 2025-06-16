@@ -145,7 +145,7 @@ export default function Index({
       console.log(error);
       setUploadError((error as Error).message);
       toast({
-        title: "Image too large",
+        title: "Error!",
         description: (error as Error).message,
         status: "error",
         duration: 3000,
