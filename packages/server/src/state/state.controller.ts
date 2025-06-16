@@ -16,6 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import StateService from './state.service';
 import { Response } from 'express';
 import { parseState } from 'src/helpers';
+import { UserState } from 'src/types/users';
 
 @Controller()
 export default class StateController {
@@ -24,18 +25,12 @@ export default class StateController {
   @Get('/state')
   userState(@Req() req: any, @Res() res: Response) {
     const userActor = this.stateService.activeUser(req.user.sub);
+    const userState = userActor.getSnapshot();
 
-    const state = {
-      ...userActor.getSnapshot().context,
-      value: parseState(userActor.getSnapshot().value),
-    };
-    const statePreview = {
-      ...state,
-      // userPhoto: state.userPhoto !== null ? 'preview' : null,
-      generatedPhotos: state.generatedPhotos.map((e) => ({
-        id: e.id,
-        data: 'preview',
-      })),
+    const state: UserState = {
+      ...userState.context,
+      userPhoto: userState.context.userPhoto?.originalname ?? null,
+      value: parseState(userState.value),
     };
 
     res.set({
@@ -47,21 +42,15 @@ export default class StateController {
 
     res.write('retry: 10000\n\n');
 
-    res.write(`data: ${JSON.stringify(statePreview)}\n\n`);
     res.write(`data: ${JSON.stringify(state)}\n\n`);
 
     const subscription = userActor.subscribe((state) => {
-      const userState = { ...state.context, value: parseState(state.value) };
-
-      const userStatePreview = {
-        ...userState,
-        // userPhoto: userState.userPhoto !== null ? 'preview' : null,
-        generatedPhotos: userState.generatedPhotos.map((e) => ({
-          id: e.id,
-          data: 'preview',
-        })),
+      const userState = {
+        ...state.context,
+        userPhoto: state.context.userPhoto?.originalname ?? null,
+        value: parseState(state.value),
       };
-      res.write(`data: ${JSON.stringify(userStatePreview)}\n\n`);
+
       res.write(`data: ${JSON.stringify(userState)}\n\n`);
     });
 
@@ -74,18 +63,19 @@ export default class StateController {
   @Get('/state/preview')
   userStatePreview(@Req() req: any) {
     const userActor = this.stateService.activeUser(req.user.sub);
-    const userState = {
+    const userState: UserState = {
       ...userActor.getSnapshot().context,
       value: parseState(userActor.getSnapshot().value),
     };
     const userStatePreview = {
       ...userState,
-      userPhoto: userState.userPhoto !== null ? 'preview' : null,
+      userPhoto: userState.userPhoto?.originalname ?? null,
       generatedPhotos: userState.generatedPhotos.map((e) => ({
         id: e.id,
         data: 'preview',
       })),
     };
+
     return userStatePreview;
   }
 

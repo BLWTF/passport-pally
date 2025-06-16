@@ -175,7 +175,7 @@ export default class StateService {
               generationRequests: ({ context, spawn }) => {
                 const newRequests: any[] = [];
                 for (let i = 0; i < 5; i++) {
-                  const requestId = uniqueId();
+                  const requestId = `req-${Date.now()}-${uniqueId()}`;
                   const requestActor = spawn('generatePassport', {
                     id: requestId,
                     input: { image: context.userPhoto! },

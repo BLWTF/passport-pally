@@ -5,6 +5,7 @@ export interface User {
 }
 
 export interface AuthUser extends User {
+  sub: string;
   accessToken?: string;
   blocked?: boolean;
 }
@@ -28,6 +29,6 @@ export interface UserState extends State {
 }
 
 export type UserStatePreview = Omit<UserState, 'userPhoto | generatedPhotos'> & {
-  userPhoto: 'preview';
-  generatedPhotos: { id: string, data: 'preview'}[];
+  userPhoto: string;
+  generatedPhotos: { id: string, data: string}[];
 }

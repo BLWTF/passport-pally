@@ -44,17 +44,34 @@ export default function useAuth() {
     body?: BodyInit | object,
     abortSignal?: AbortSignal,
     headers?: HeadersInit,
+    timeout?: number,
     onUploadProgress?: ProgressCallback
   ) => {
     try {
-      const res = await apiFetch(url, method, body, abortSignal, headers, onUploadProgress);
+      const res = await apiFetch(
+        url,
+        method,
+        body,
+        abortSignal,
+        headers,
+        timeout,
+        onUploadProgress
+      );
       return res;
     } catch (error) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const code = (error as unknown as any).statusCode;
       if (code === 401) {
         await refresh();
-        return await apiFetch(url, method, body, abortSignal, headers, onUploadProgress);
+        return await apiFetch(
+          url,
+          method,
+          body,
+          abortSignal,
+          headers,
+          timeout,
+          onUploadProgress
+        );
       }
     }
   };

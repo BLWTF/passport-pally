@@ -34,6 +34,7 @@ import { AuthSession } from "@/lib/types/session";
 import { getUserStatePreview } from "@/lib/api/users";
 import StateImage from "@/components/state-image";
 import { ArrowBigDown } from "lucide-react";
+import useIndexedDB from "@/lib/hooks/useIndexedDB";
 
 export async function getServerSideProps({
   req,
@@ -71,17 +72,32 @@ export default function Index({
 }) {
   const { session, isUnauthenticated, authFetch } = useAuth();
   console.log(session);
+  const user = session?.user;
+  const { error, setValue, getValue, deleteValue } = useIndexedDB();
+  const { data: userStateStream } = useSSE<UserStatePreview>(
+    `${process.env.NEXT_PUBLIC_SERVER_URL}/state`
+  );
   const [uploadedImage, setUploadedImage] = useState<File>();
   const [imagePreview, setImagePreview] = useState<string>();
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState();
+  const [uploadError, setUploadError] = useState<string>();
   const [isGenerating, setIsGenerating] = useState(false);
   const toast = useToast();
-  const { data: userStateStream } = useSSE<UserState>(
-    `${process.env.NEXT_PUBLIC_SERVER_URL}/state`
-  );
   const userState = userStateStream ?? statePreview;
   console.log("userState", userState);
+  const MAX_SIZE = 10 * 1024 * 1024;
+
+  useEffect(() => {
+    const getCachedImage = async () => {
+      if (userState?.userPhoto) {
+        const image = await getValue<string>(userState?.userPhoto);
+        setImagePreview(image);
+      }
+    };
+
+    getCachedImage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userState?.userPhoto]);
 
   const handleFileSelect = async (file: File) => {
     setUploadError(undefined);
@@ -92,23 +108,51 @@ export default function Index({
       return;
     }
 
+    if (file.size > MAX_SIZE) {
+      const errMsg = "File size must be less than 10MB";
+      setUploadError(errMsg);
+      toast({
+        title: "Image too large",
+        description: errMsg,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
     try {
       if (isUnauthenticated) {
         await signIn("credentials", { redirect: false });
+        toast({
+          title: "Signed In!",
+          description: "You have been authenticated.",
+          status: "info",
+          duration: 3000,
+          isClosable: true,
+        });
       }
 
-      fileToBlob(file, (result) => {
+      fileToBlob(file, async (result) => {
         setImagePreview(result as string);
+        await setValue(file.name, result);
       });
 
       const formData = new FormData();
       formData.append("file", file as Blob);
 
       await authFetch("/upload", "POST", formData);
-      setIsUploading(false);
     } catch (error) {
       console.log(error);
-      setUploadError(error as unknown as never);
+      setUploadError((error as Error).message);
+      toast({
+        title: "Image too large",
+        description: (error as Error).message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -118,28 +162,28 @@ export default function Index({
     await authFetch("/generate", "GET");
   };
 
-  useEffect(() => {
-    if (
-      userState?.userPhoto &&
-      (isUploading || !imagePreview || imagePreview === "preview")
-    ) {
-      if (userState?.userPhoto) {
-        if ((userState?.userPhoto as unknown as string) !== "preview") {
-          const buffer = Buffer.from(userState?.userPhoto.buffer);
+  // useEffect(() => {
+  //   if (
+  //     userState?.userPhoto &&
+  //     (isUploading || !imagePreview || imagePreview === "preview")
+  //   ) {
+  //     if (userState?.userPhoto) {
+  //       if ((userState?.userPhoto as unknown as string) !== "preview") {
+  //         const buffer = Buffer.from(userState?.userPhoto.buffer);
 
-          const blob = new Blob([buffer], {
-            type: userState?.userPhoto.mimetype,
-          });
+  //         const blob = new Blob([buffer], {
+  //           type: userState?.userPhoto.mimetype,
+  //         });
 
-          fileToBlob(blob, (result) => {
-            setImagePreview(result);
-          });
-        } else {
-          setImagePreview(userState?.userPhoto as unknown as string);
-        }
-      }
-    }
-  }, [imagePreview, isUploading, userState?.userPhoto]);
+  //         fileToBlob(blob, (result) => {
+  //           setImagePreview(result);
+  //         });
+  //       } else {
+  //         setImagePreview(userState?.userPhoto as unknown as string);
+  //       }
+  //     }
+  //   }
+  // }, [imagePreview, isUploading, userState?.userPhoto]);
 
   const handleDownload = () => {
     toast({
@@ -169,9 +213,16 @@ export default function Index({
               >
                 Pricing
               </Button> */}
-              <Button bg="whiteAlpha.300" _hover={{ bg: "whiteAlpha.400" }}>
-                Sign In
-              </Button>
+              {!user && (
+                <Button bg="whiteAlpha.300" _hover={{ bg: "whiteAlpha.400" }}>
+                  Sign In
+                </Button>
+              )}
+              {user && (
+                <Button bg="whiteAlpha.300" _hover={{ bg: "whiteAlpha.400" }}>
+                  {user.sub}
+                </Button>
+              )}
             </HStack>
           </Flex>
         </Container>
@@ -372,7 +423,7 @@ export default function Index({
                     </VStack>
 
                     <Box fontSize="24px" color="gray.400">
-                     <ArrowBigDown />
+                      <ArrowBigDown />
                     </Box>
 
                     <SimpleGrid columns={{ base: 2, md: 3 }} gap={5}>
@@ -387,7 +438,7 @@ export default function Index({
                           bg="white"
                           className="card-shadow"
                         >
-                          <StateImage imageData={generatedPhoto.data} />
+                          <StateImage image={generatedPhoto} />
                         </Box>
                       ))}
                       {userState.generationRequests.map((generationRequest) => (

@@ -1,10 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+class TimeoutError extends Error {
+  constructor(timeout: number) {
+    super("Request timed out");
+    this.name = "TimeoutError";
+    this.timeout = timeout;
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, TimeoutError);
+    }
+  }
+  timeout: number;
+}
+
 export default async function apiFetch(
   url: string,
   method: "GET" | "POST" | "PUT" | "PATCH",
   body?: BodyInit | object,
   abortSignal?: AbortSignal,
   headers?: HeadersInit,
+  timeout?: number,
   onUploadProgress?: ProgressCallback
 ) {
   const isFormData = body instanceof FormData;
@@ -15,6 +29,11 @@ export default async function apiFetch(
         "Content-Type": "application/json",
         ...headers,
       };
+
+  const controller = new AbortController();
+  const timeoutId = timeout
+    ? setTimeout(() => controller.abort(), timeout)
+    : undefined;
 
   try {
     if (onUploadProgress) {
@@ -94,7 +113,15 @@ export default async function apiFetch(
 
     return data;
   } catch (error) {
+    if ((error as unknown as any).name === "AbortError" && timeout) {
+      throw new TimeoutError(10_000);
+    }
+
     throw error;
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 

@@ -33,6 +33,6 @@ export type UserStatePreview = Omit<
   UserState,
   'userPhoto | generatedPhotos'
 > & {
-  userPhoto: 'preview';
-  generatedPhotos: { id: string; data: 'preview' }[];
+  userPhoto: string;
+  generatedPhotos: { id: string; data: string }[];
 };
