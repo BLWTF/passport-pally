@@ -1,64 +1,71 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
   Controller,
   Get,
+  MessageEvent,
   Post,
   Req,
-  Res,
+  Sse,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import StateService from './state.service';
-import { Response } from 'express';
 import { parseState } from 'src/helpers';
 import { UserState } from 'src/types/users';
+import { Observable, from, map } from 'rxjs';
 
 @Controller()
 export default class StateController {
   constructor(private readonly stateService: StateService) {}
 
-  @Get('/state')
-  userState(@Req() req: any, @Res() res: Response) {
+  @Sse('/state')
+  sse(@Req() req: any): Observable<MessageEvent> {
     const userActor = this.stateService.activeUser(req.user.sub);
-    const userState = userActor.getSnapshot();
 
-    const state: UserState = {
-      ...userState.context,
-      userPhoto: userState.context.userPhoto?.originalname ?? null,
-      value: parseState(userState.value),
-    };
+    return from(userActor).pipe(
+      map((state) => {
+        const userState = {
+          ...state.context,
+          userPhoto: state.context.userPhoto?.originalname ?? null,
+          value: parseState(state.value),
+        };
 
-    res.set({
-      'Cache-Control': 'no-cache',
-      'Content-Type': 'text/event-stream',
-      Connection: 'keep-alive',
-    });
-    res.flushHeaders();
-
-    res.write('retry: 10000\n\n');
-
-    res.write(`data: ${JSON.stringify(state)}\n\n`);
-
-    const subscription = userActor.subscribe((state) => {
-      const userState = {
-        ...state.context,
-        userPhoto: state.context.userPhoto?.originalname ?? null,
-        value: parseState(state.value),
-      };
-
-      res.write(`data: ${JSON.stringify(userState)}\n\n`);
-    });
-
-    res.on('close', () => {
-      subscription.unsubscribe();
-      res.end();
-    });
+        return { id: new Date().getTime().toString(), data: userState };
+      }),
+    );
   }
+
+  // @Get('/state')
+  // userState(@Req() req: any, @Res() res: Response) {
+  //   const userActor = this.stateService.activeUser(req.user.sub);
+
+  //   res.set({
+  //     'Cache-Control': 'no-cache',
+  //     'Content-Type': 'text/event-stream',
+  //     Connection: 'keep-alive',
+  //   });
+  //   res.flushHeaders();
+
+  //   res.write('retry: 10000\n\n');
+
+  //   const subscription = userActor.subscribe((state) => {
+  //     const userState = {
+  //       ...state.context,
+  //       userPhoto: state.context.userPhoto?.originalname ?? null,
+  //       value: parseState(state.value),
+  //     };
+
+  //     res.write(`data: ${JSON.stringify(userState)}\n\n`);
+  //   });
+
+  //   res.on('close', () => {
+  //     subscription.unsubscribe();
+  //     res.end();
+  //   });
+  // }
 
   @Get('/state/preview')
   userStatePreview(@Req() req: any) {

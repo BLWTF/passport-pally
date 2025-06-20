@@ -18,6 +18,7 @@ export interface State {
   error: string | null;
   generationRequests: { id: string; actor: AnyActorRef }[];
   parameters: {
+    noToGenerate: number;
     backgroundColor: string;
     facePosition: string;
     photoSize: string;

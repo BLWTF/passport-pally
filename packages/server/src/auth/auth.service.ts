@@ -15,10 +15,16 @@ export default class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async signIn(res: Response, user: User, accessTokenCookieName: string) {
+  async signIn(
+    res: Response,
+    user: User,
+    accessTokenCookieName: string,
+    saveToCookie = true,
+  ) {
     const { payload, accessToken } = await this.createAccessToken(user);
-    this.saveToCookie(res, accessTokenCookieName, accessToken);
-
+    if (saveToCookie) {
+      this.saveToCookie(res, accessTokenCookieName, accessToken);
+    }
     return { ...payload, accessToken };
   }
 

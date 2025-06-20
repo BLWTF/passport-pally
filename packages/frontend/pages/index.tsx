@@ -70,6 +70,7 @@ export default function Index({
 }: {
   statePreview?: UserStatePreview;
 }) {
+  console.log("statePreview", statePreview);
   const { session, isUnauthenticated, authFetch } = useAuth();
   console.log(session);
   const user = session?.user;
@@ -123,13 +124,6 @@ export default function Index({
     try {
       if (isUnauthenticated) {
         await signIn("credentials", { redirect: false });
-        toast({
-          title: "Signed In!",
-          description: "You have been authenticated.",
-          status: "info",
-          duration: 3000,
-          isClosable: true,
-        });
       }
 
       fileToBlob(file, async (result) => {

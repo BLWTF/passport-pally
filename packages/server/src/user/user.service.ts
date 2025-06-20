@@ -31,6 +31,7 @@ export default class UserService {
       res,
       user,
       this.configService.get('ACCESS_TOKEN_COOKIE_NAME') as string,
+      false,
     );
     return loggedInUser;
   }

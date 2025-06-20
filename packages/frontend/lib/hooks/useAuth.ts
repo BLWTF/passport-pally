@@ -68,7 +68,7 @@ export default function useAuth() {
           method,
           body,
           abortSignal,
-          { Authorization: `Bearer ${user?.accessToken}` },
+          headers,
           timeout,
           onUploadProgress
         );

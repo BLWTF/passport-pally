@@ -12,6 +12,8 @@ async function bootstrap() {
   app.enableCors({
     origin: configService.get('CLIENT_HOST') as string,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control'],
   });
 
   const secret = configService.get<string>('COOKIE_SECRET')!;

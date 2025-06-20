@@ -4,7 +4,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { uniqueId } from 'lodash';
-import GeminiService from 'src/gemini/gemini.service';
+import AiService from 'src/ai/ai.service';
 import { State } from 'src/types/users';
 import {
   AnyActorRef,
@@ -19,7 +19,7 @@ import {
 
 @Injectable()
 export default class StateService {
-  constructor(private readonly geminiService: GeminiService) {
+  constructor(private readonly aiService: AiService) {
     this.appActor = createActor(this.stateMachine);
     this.appActor.start();
   }
@@ -43,6 +43,64 @@ export default class StateService {
   appActor: AnyActorRef;
 
   private stateMachine = setup({}).createMachine({
+    id: 'main',
+    context: {
+      prompt: `Create a realistic, studio-quality passport photograph using the provided face. Use the following exact specifications and constraints:
+
+      1. Composition & Layout:
+
+      The subject’s face must be centered and occupy 70–80% of the photo height.
+
+      Head is facing forward with a neutral expression and closed mouth.
+
+      Eyes are open, clearly visible, and horizontally aligned.
+
+      Entire head and the top of shoulders must be visible.
+
+      2. Background:
+
+      Use a plain, uniform white or very light gray background.
+
+      Ensure no patterns, shadows, textures, or objects are present.
+
+      3. Lighting:
+
+      Use even, diffused lighting with no harsh shadows or reflections.
+
+      Avoid red-eye or overexposure. The skin tone must appear natural.
+
+      4. Quality:
+
+      High resolution, crisp image with no blurring, noise, or filters.
+
+      No digital enhancements or cosmetic retouching on the face.
+
+      5. Attire:
+
+      Subject should appear in simple, dark-colored clothing (e.g., shirt or blouse) with no uniform, hat, scarf, or accessories (unless for religious or medical reasons).
+
+      Neck and shoulder area should be subtly visible—no cropping at the neck.
+
+      6. Realism Constraints:
+
+      Do not alter facial structure, symmetry, skin tone, or hair.
+
+      Do not stylize or cartoonify.
+
+      Match natural head proportions, spacing, and placement as captured in the original photo.
+
+      Ensure the final result looks exactly like a real studio passport photograph, as accepted by government authorities.
+
+      7. Output Format:
+
+      Portrait orientation, 35mm x 45mm framing.
+
+      Head positioned at 32–36mm from chin to crown.
+
+      Neutral white balance and flat lighting for consistent tone.
+
+      Final image must be indistinguishable from a real photograph taken in a passport photo studio.`,
+    },
     on: {
       USER_INIT: {
         actions: [
@@ -58,10 +116,10 @@ export default class StateService {
 
   private generatePassport = fromCallback<
     EventObject,
-    { image: Express.Multer.File }
+    { image: Express.Multer.File; prompt: string }
   >(({ input, sendBack, self }) => {
-    this.geminiService
-      .generateImageFromTextAndImage(input.image)
+    this.aiService
+      .generateImageFromTextAndImage(input.image, input.prompt)
       .then((imageString) =>
         sendBack({
           type: 'GENERATION_COMPLETE',
@@ -118,6 +176,7 @@ export default class StateService {
       error: null,
       selectedPhoto: null,
       parameters: {
+        noToGenerate: 3,
         backgroundColor: '#FFFFFF',
         facePosition: 'centered',
         photoSize: '2x2', // inches
@@ -172,13 +231,16 @@ export default class StateService {
         states: {
           generationStart: {
             entry: assign({
-              generationRequests: ({ context, spawn }) => {
+              generationRequests: ({ context, spawn, self }) => {
+                const parent = self._parent;
+                const prompt = parent?.getSnapshot().context.prompt as string;
+
                 const newRequests: any[] = [];
-                for (let i = 0; i < 5; i++) {
+                for (let i = 0; i < context.parameters.noToGenerate; i++) {
                   const requestId = `req-${Date.now()}-${uniqueId()}`;
                   const requestActor = spawn('generatePassport', {
                     id: requestId,
-                    input: { image: context.userPhoto! },
+                    input: { image: context.userPhoto!, prompt },
                   });
                   newRequests.push({ id: requestId, actor: requestActor });
                 }
@@ -193,11 +255,6 @@ export default class StateService {
               return context.generationRequests.length === 0;
             },
             on: {
-              SELECT_PHOTO: {
-                actions: assign({
-                  selectedPhoto: ({ event }) => event.photo,
-                }),
-              },
               GENERATE_ANOTHER: {
                 target: 'generationStart',
               },
@@ -253,19 +310,28 @@ export default class StateService {
             ],
             target: '.generationError',
           },
-          CANCEL_GENERATION: {
+          STOP_GENERATION: {
             actions: assign({
-              generationRequests: ({ context, event }) => {
-                if (event.requestId) {
-                  return context.generationRequests.filter(
-                    (req) => req.id !== event.requestId,
-                  );
-                }
+              generationRequests: ({ context }) => {
+                context.generationRequests.forEach((request) => {
+                  request.actor.stop();
+                });
                 return [];
               },
             }),
+            guard: ({ context }) => context.generationRequests.length !== 0,
+          },
+          CANCEL_GENERATION: {
+            actions: assign({
+              generationRequests: ({ context }) => {
+                context.generationRequests.forEach((request) => {
+                  request.actor.stop();
+                });
+                return [];
+              },
+              generatedPhotos: [],
+            }),
             target: 'photoUploaded',
-            guard: ({ context }) => context.generationRequests.length === 0,
           },
         },
         // always: {
