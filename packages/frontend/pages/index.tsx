@@ -35,6 +35,8 @@ import { getUserStatePreview } from "@/lib/api/users";
 import StateImage from "@/components/state-image";
 import { ArrowBigDown } from "lucide-react";
 import useIndexedDB from "@/lib/hooks/useIndexedDB";
+import Logo from "@/components/logo";
+import OptionsSection from "@/components/options-section";
 
 export async function getServerSideProps({
   req,
@@ -82,7 +84,6 @@ export default function Index({
   const [imagePreview, setImagePreview] = useState<string>();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string>();
-  const [isGenerating, setIsGenerating] = useState(false);
   const toast = useToast();
   const userState = userStateStream ?? statePreview;
   console.log("userState", userState);
@@ -150,12 +151,6 @@ export default function Index({
     }
   };
 
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-
-    await authFetch("/generate", "GET");
-  };
-
   // useEffect(() => {
   //   if (
   //     userState?.userPhoto &&
@@ -195,28 +190,15 @@ export default function Index({
   };
 
   return (
-    <Box pt={10} pb={20} minH="100vh">
+    <Box minH="100vh">
       <Box className="gradient-bg" py={6} mb={10}>
         <Container maxW="container.xl">
           <Flex alignItems="center" justifyContent="space-between">
-            <Heading size="lg">Passport Photo Generator</Heading>
+            <Logo />
             <HStack spacing={4}>
-              {/* <Button
-                variant="ghost"
-                _hover={{ bg: "whiteAlpha.200" }}
-              >
+              <Button variant="ghost" _hover={{ bg: "whiteAlpha.200" }}>
                 Pricing
-              </Button> */}
-              {!user && (
-                <Button bg="whiteAlpha.300" _hover={{ bg: "whiteAlpha.400" }}>
-                  Sign In
-                </Button>
-              )}
-              {user && (
-                <Button bg="whiteAlpha.300" _hover={{ bg: "whiteAlpha.400" }}>
-                  {user.sub}
-                </Button>
-              )}
+              </Button>
             </HStack>
           </Flex>
         </Container>
@@ -229,10 +211,8 @@ export default function Index({
               {(!userState || userState?.value === "idle") && (
                 <VStack spacing={8}>
                   <VStack spacing={4} textAlign="center">
-                    <Heading as="h1" size="xl">
-                      Create Perfect Passport Photos
-                    </Heading>
-                    <Text fontSize="lg" color="gray.600">
+                    <Heading size="lg">Create Perfect Passport Photos</Heading>
+                    <Text fontSize="md" color="gray.600">
                       Upload your photo and our AI will generate professional
                       passport photos that meet official requirements
                     </Text>
@@ -242,137 +222,14 @@ export default function Index({
                     onFileSelect={handleFileSelect}
                     isUploading={isUploading}
                   />
-
-                  {/* <Box textAlign="center">
-                    <Text fontWeight="medium" mb={2}>
-                      Examples of good photos to upload:
-                    </Text>
-                    <Flex justify="center" gap={4}>
-                      <Image
-                        src="/api/placeholder/120/150"
-                        alt="Example 1"
-                        borderRadius="md"
-                      />
-                      <Image
-                        src="/api/placeholder/120/150"
-                        alt="Example 2"
-                        borderRadius="md"
-                      />
-                      <Image
-                        src="/api/placeholder/120/150"
-                        alt="Example 3"
-                        borderRadius="md"
-                      />
-                    </Flex>
-                  </Box> */}
                 </VStack>
               )}
 
               {userState?.value === "photoUploaded" && (
-                <Flex gap={8} direction={{ base: "column", md: "row" }}>
-                  <Box flex={1}>
-                    <VStack spacing={6} align="start">
-                      <Heading size="lg">Configure Your Passport Photo</Heading>
-
-                      <FormControl>
-                        <FormLabel>Country</FormLabel>
-                        <Select placeholder="Select country" defaultValue="us">
-                          <option value="us">United States</option>
-                          <option value="uk">United Kingdom</option>
-                          <option value="ca">Canada</option>
-                          <option value="au">Australia</option>
-                          <option value="eu">European Union</option>
-                        </Select>
-                      </FormControl>
-
-                      <FormControl>
-                        <FormLabel>Photo Type</FormLabel>
-                        <Select defaultValue="passport">
-                          <option value="passport">Passport</option>
-                          <option value="visa">Visa</option>
-                          <option value="id">ID Card</option>
-                          <option value="driving">Driving License</option>
-                        </Select>
-                      </FormControl>
-
-                      <FormControl display="flex" alignItems="center">
-                        <FormLabel mb="0">Remove background</FormLabel>
-                        <Switch colorScheme="blue" defaultChecked />
-                      </FormControl>
-
-                      <FormControl display="flex" alignItems="center">
-                        <FormLabel mb="0">Enhance lighting</FormLabel>
-                        <Switch colorScheme="blue" defaultChecked />
-                      </FormControl>
-
-                      <FormControl display="flex" alignItems="center">
-                        <FormLabel mb="0">Fix posture & alignment</FormLabel>
-                        <Switch colorScheme="blue" defaultChecked />
-                      </FormControl>
-
-                      <Button
-                        onClick={handleGenerate}
-                        colorScheme="blue"
-                        size="lg"
-                        width="100%"
-                        isLoading={isGenerating}
-                        loadingText="Generating"
-                      >
-                        Generate Passport Photo
-                      </Button>
-                    </VStack>
-                  </Box>
-
-                  <VStack flex={1} spacing={4} align="center">
-                    <Box
-                      borderWidth="1px"
-                      borderRadius="md"
-                      overflow="hidden"
-                      w="100%"
-                      maxW="300px"
-                      aspectRatio={3 / 4}
-                      bg="gray.100"
-                      position="relative"
-                    >
-                      {isUploading && (
-                        <Box
-                          position="absolute"
-                          w="100%"
-                          h="100%"
-                          p={5}
-                          display="flex"
-                          alignItems="center"
-                          justifyContent="center"
-                          bgColor="gray.400"
-                          opacity="0.5"
-                        >
-                          <Spinner
-                            w="100px"
-                            h="100px"
-                            thickness="20px"
-                            size="xl"
-                          />
-                        </Box>
-                      )}
-                      {imagePreview && imagePreview !== "preview" && (
-                        <Image
-                          src={imagePreview}
-                          alt="Preview"
-                          w="100%"
-                          h="100%"
-                          objectFit="cover"
-                        />
-                      )}
-                      {imagePreview && imagePreview === "preview" && (
-                        <Skeleton w="100%" h="100%" />
-                      )}
-                    </Box>
-                    <Text color="gray.500" fontSize="sm">
-                      Preview of original photo
-                    </Text>
-                    <Badge colorScheme="green">Image quality: Good</Badge>
-                  </VStack>
-                </Flex>
+                <OptionsSection
+                  imagePreview={imagePreview}
+                  isUploading={isUploading}
+                />
               )}
 
               {userState?.value === "generating" && (
@@ -651,30 +508,14 @@ export default function Index({
             gap={8}
           >
             <VStack align="start" spacing={4} maxW="320px">
-              <Heading size="md">Passport Photo Generator</Heading>
+              <Logo />
               <Text color="gray.400">
                 Create professional passport and ID photos that meet official
                 requirements in seconds with our AI-powered tool.
               </Text>
-              <HStack spacing={4} mt={2}>
-                {/* Social Media Icons */}
-                {["twitter", "facebook", "instagram"].map((social) => (
-                  <Box
-                    key={social}
-                    as="a"
-                    href="#"
-                    p={2}
-                    borderRadius="full"
-                    bg="whiteAlpha.200"
-                    _hover={{ bg: "whiteAlpha.300" }}
-                  >
-                    <Box as="span" w="20px" h="20px" display="block" />
-                  </Box>
-                ))}
-              </HStack>
             </VStack>
 
-            <Flex gap={10} wrap="wrap">
+            {/* <Flex gap={10} wrap="wrap">
               <VStack align="start" spacing={3}>
                 <Heading size="sm" mb={2}>
                   Product
@@ -735,7 +576,7 @@ export default function Index({
                   </Box>
                 ))}
               </VStack>
-            </Flex>
+            </Flex> */}
           </Flex>
 
           <Divider my={8} borderColor="gray.700" />
@@ -747,9 +588,9 @@ export default function Index({
             gap={4}
           >
             <Text color="gray.500">
-              © 2025 Passport Photo Generator. All rights reserved.
+              © 2025 Passport Pally. All rights reserved.
             </Text>
-            <HStack spacing={6}>
+            {/* <HStack spacing={6}>
               <Text
                 as="a"
                 href="#"
@@ -774,7 +615,7 @@ export default function Index({
               >
                 Cookies
               </Text>
-            </HStack>
+            </HStack> */}
           </Flex>
         </Container>
       </Box>

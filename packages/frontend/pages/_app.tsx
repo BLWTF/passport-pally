@@ -1,12 +1,18 @@
+import theme from "@/lib/theme";
 import "@/styles/globals.css";
-import { ChakraProvider, theme } from "@chakra-ui/react";
+import { ChakraProvider } from "@chakra-ui/react";
 import { SessionProvider } from "next-auth/react";
 import type { AppProps } from "next/app";
-import { Space_Grotesk } from "next/font/google";
+import { Space_Grotesk, Caprasimo } from "next/font/google";
 
 const spaceGrotesk = Space_Grotesk({
   weight: ["300", "400", "500", "600", "700"],
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext", "vietnamese"],
+});
+
+const caprasimo = Caprasimo({
+  weight: ["400"],
+  subsets: ["latin", "latin-ext"],
 });
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -15,6 +21,7 @@ export default function App({ Component, pageProps }: AppProps) {
       <style jsx global>
         {`
           :root {
+            --font-caprasimo: ${caprasimo.style.fontFamily};
             --font-space-grotesk: ${spaceGrotesk.style.fontFamily};
           }
         `}

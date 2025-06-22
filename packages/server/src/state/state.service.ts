@@ -177,10 +177,11 @@ export default class StateService {
       selectedPhoto: null,
       parameters: {
         noToGenerate: 3,
-        backgroundColor: '#FFFFFF',
-        facePosition: 'centered',
-        photoSize: '2x2', // inches
-        countryFormat: 'US',
+        country: undefined,
+        size: undefined,
+        headHeight: undefined,
+        eyePosition: undefined,
+        backgroundColor: [],
       },
     },
     on: {
@@ -210,6 +211,12 @@ export default class StateService {
         on: {
           GENERATE_PHOTO: {
             target: 'generating',
+            actions: assign({
+              parameters: ({ event, context }) => ({
+                ...context,
+                ...event.parameters,
+              }),
+            }),
           },
           UPLOAD_PHOTO: {
             target: 'photoUploaded',
@@ -236,7 +243,11 @@ export default class StateService {
                 const prompt = parent?.getSnapshot().context.prompt as string;
 
                 const newRequests: any[] = [];
-                for (let i = 0; i < context.parameters.noToGenerate; i++) {
+                for (
+                  let i = 0;
+                  i < (context.parameters?.noToGenerate ?? 3);
+                  i++
+                ) {
                   const requestId = `req-${Date.now()}-${uniqueId()}`;
                   const requestActor = spawn('generatePassport', {
                     id: requestId,

@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
+  Body,
   Controller,
   Get,
   MessageEvent,
@@ -14,7 +15,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import StateService from './state.service';
 import { parseState } from 'src/helpers';
-import { UserState } from 'src/types/users';
+import { State, UserState } from 'src/types/users';
 import { Observable, from, map } from 'rxjs';
 
 @Controller()
@@ -86,9 +87,11 @@ export default class StateController {
     return userStatePreview;
   }
 
-  @Get('/generate')
-  generate(@Req() req: any) {
-    this.stateService.activeUser(req.user.sub).send({ type: 'GENERATE_PHOTO' });
+  @Post('/generate')
+  generate(@Req() req: any, @Body() body: State['parameters']) {
+    this.stateService
+      .activeUser(req.user.sub)
+      .send({ type: 'GENERATE_PHOTO', parameters: body });
     return {};
   }
 

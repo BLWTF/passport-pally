@@ -1,9 +1,9 @@
-import { extendTheme } from "@chakra-ui/react";
+import { defineStyleConfig, extendTheme } from "@chakra-ui/react";
 
 const theme = extendTheme({
   styles: {
     global: () => ({
-      body: {
+      "html, body": {
         // bg: "#fff",
         // color: "#000",
         fontFamily: "var(--font-space-grotesk)",
@@ -17,7 +17,7 @@ const theme = extendTheme({
       200: "#91d5ff",
       300: "#69c0ff",
       400: "#40a9ff",
-      500: "#1890ff",
+      500: "#246793",
       600: "#096dd9",
       700: "#0050b3",
       800: "#003a8c",
@@ -25,21 +25,45 @@ const theme = extendTheme({
     },
   },
   components: {
-    Button: {
+    Heading: {
       baseStyle: {
-        fontWeight: "600",
-        borderRadius: "md",
+        fontFamily: "var(--font-space-grotesk)",
       },
       variants: {
-        primary: {
-          bg: "brand.500",
-          color: "white",
-          _hover: {
-            bg: "brand.600",
-          },
+        logo: {
+          fontFamily: "var(--font-caprasimo)",
+          color: "#246793",
         },
       },
     },
+    Button: defineStyleConfig({
+      defaultProps: {
+        variant: 'primary'
+      },
+      baseStyle: {
+        fontWeight: "600",
+        borderRadius: "md",
+        bg: "gray.100",
+        boxShadow: "md",
+        _hover: {
+          _disabled: "#246793",
+          color: "white",
+          bg: "#246793",
+        },
+        _focus: {
+          color: "white",
+          bg: "#246793",
+        },
+        _disabled: {
+          color: "white",
+          bg: "#246793",
+        },
+        _active: {
+          color: "white",
+          bg: "#246793",
+        },
+      },
+    }),
   },
 });
 
