@@ -38,7 +38,11 @@ const theme = extendTheme({
     },
     Button: defineStyleConfig({
       defaultProps: {
-        variant: 'primary'
+        variant: "primary",
+      },
+      variants: {
+        primary: {},
+        secondary: { bg: "#246793", color: "white" },
       },
       baseStyle: {
         fontWeight: "600",

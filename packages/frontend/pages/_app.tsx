@@ -28,7 +28,7 @@ export default function App({ Component, pageProps }: AppProps) {
       </style>
       <ChakraProvider theme={theme}>
         <SessionProvider>
-          <Component {...pageProps} />;
+          <Component {...pageProps} />
         </SessionProvider>
       </ChakraProvider>
     </>

@@ -32,7 +32,7 @@ import { useEffect, useState } from "react";
 import { authOptions } from "./api/auth/[...nextauth]";
 import { AuthSession } from "@/lib/types/session";
 import { getUserStatePreview } from "@/lib/api/users";
-import StateImage from "@/components/state-image";
+import GeneratedPassportPhoto from "@/components/generated-passport";
 import { ArrowBigDown } from "lucide-react";
 import useIndexedDB from "@/lib/hooks/useIndexedDB";
 import Logo from "@/components/logo";
@@ -151,39 +151,6 @@ export default function Index({
     }
   };
 
-  // useEffect(() => {
-  //   if (
-  //     userState?.userPhoto &&
-  //     (isUploading || !imagePreview || imagePreview === "preview")
-  //   ) {
-  //     if (userState?.userPhoto) {
-  //       if ((userState?.userPhoto as unknown as string) !== "preview") {
-  //         const buffer = Buffer.from(userState?.userPhoto.buffer);
-
-  //         const blob = new Blob([buffer], {
-  //           type: userState?.userPhoto.mimetype,
-  //         });
-
-  //         fileToBlob(blob, (result) => {
-  //           setImagePreview(result);
-  //         });
-  //       } else {
-  //         setImagePreview(userState?.userPhoto as unknown as string);
-  //       }
-  //     }
-  //   }
-  // }, [imagePreview, isUploading, userState?.userPhoto]);
-
-  const handleDownload = () => {
-    toast({
-      title: "Download started",
-      description: "Your passport photo is being downloaded.",
-      status: "info",
-      duration: 3000,
-      isClosable: true,
-    });
-  };
-
   const handleReset = () => {
     setUploadedImage(undefined);
     setImagePreview(undefined);
@@ -257,8 +224,8 @@ export default function Index({
                         borderWidth="1px"
                         borderRadius="md"
                         overflow="hidden"
-                        w="200px"
-                        h="250px"
+                        w="80px"
+                        h="120px"
                         bg="gray.100"
                       >
                         {imagePreview && (
@@ -279,64 +246,19 @@ export default function Index({
 
                     <SimpleGrid columns={{ base: 2, md: 3 }} gap={5}>
                       {userState.generatedPhotos.map((generatedPhoto) => (
-                        <Box
+                        <GeneratedPassportPhoto
                           key={generatedPhoto.id}
-                          borderWidth="1px"
-                          borderRadius="md"
-                          overflow="hidden"
-                          w="200px"
-                          h="250px"
-                          bg="white"
-                          className="card-shadow"
-                        >
-                          <StateImage image={generatedPhoto} />
-                        </Box>
+                          image={generatedPhoto}
+                        />
                       ))}
                       {userState.generationRequests.map((generationRequest) => (
-                        <Box
-                          key={generationRequest.id}
-                          borderWidth="1px"
-                          borderRadius="md"
-                          overflow="hidden"
-                          w="200px"
-                          h="250px"
-                          bg="white"
-                          className="card-shadow"
-                        >
-                          <StateImage />
-                        </Box>
+                        <GeneratedPassportPhoto key={generationRequest.id} />
                       ))}
                     </SimpleGrid>
                   </Flex>
 
                   <VStack spacing={4} w="100%" maxW="400px">
                     <Button
-                      onClick={handleDownload}
-                      colorScheme="blue"
-                      size="lg"
-                      width="100%"
-                      leftIcon={
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          fill="currentColor"
-                          viewBox="0 0 16 16"
-                        >
-                          <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
-                          <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
-                        </svg>
-                      }
-                    >
-                      Download Digital Copy
-                    </Button>
-
-                    <Button variant="outline" colorScheme="blue" width="100%">
-                      Order Printed Photos
-                    </Button>
-
-                    <Button
-                      onClick={handleReset}
                       variant="ghost"
                       colorScheme="blue"
                     >

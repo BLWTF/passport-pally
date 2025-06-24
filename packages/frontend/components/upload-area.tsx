@@ -92,7 +92,7 @@ const UploadArea = ({
               type="file"
               accept="image/*"
               onChange={handleChange}
-              id="file-upload"
+              id="image-capture"
               capture="user"
               hidden
             />
@@ -111,7 +111,6 @@ const UploadArea = ({
               accept="image/*"
               onChange={handleChange}
               id="file-upload"
-              capture="user"
               hidden
             />
             <Button

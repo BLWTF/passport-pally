@@ -45,7 +45,9 @@ export default class StateService {
   private stateMachine = setup({}).createMachine({
     id: 'main',
     context: {
-      prompt: `Create a realistic, studio-quality passport photograph using the provided face. Use the following exact specifications and constraints:
+      prompt: `Create a realistic, studio-quality passport photograph using the provided face. 
+      
+      Use the following exact specifications and constraints:
 
       1. Composition & Layout:
 
@@ -57,31 +59,25 @@ export default class StateService {
 
       Entire head and the top of shoulders must be visible.
 
-      2. Background:
-
-      Use a plain, uniform white or very light gray background.
-
-      Ensure no patterns, shadows, textures, or objects are present.
-
-      3. Lighting:
+      2. Lighting:
 
       Use even, diffused lighting with no harsh shadows or reflections.
 
       Avoid red-eye or overexposure. The skin tone must appear natural.
 
-      4. Quality:
+      3. Quality:
 
       High resolution, crisp image with no blurring, noise, or filters.
 
       No digital enhancements or cosmetic retouching on the face.
 
-      5. Attire:
+      4. Attire:
 
       Subject should appear in simple, dark-colored clothing (e.g., shirt or blouse) with no uniform, hat, scarf, or accessories (unless for religious or medical reasons).
 
       Neck and shoulder area should be subtly visible—no cropping at the neck.
 
-      6. Realism Constraints:
+      5. Realism Constraints:
 
       Do not alter facial structure, symmetry, skin tone, or hair.
 
@@ -89,17 +85,7 @@ export default class StateService {
 
       Match natural head proportions, spacing, and placement as captured in the original photo.
 
-      Ensure the final result looks exactly like a real studio passport photograph, as accepted by government authorities.
-
-      7. Output Format:
-
-      Portrait orientation, 35mm x 45mm framing.
-
-      Head positioned at 32–36mm from chin to crown.
-
-      Neutral white balance and flat lighting for consistent tone.
-
-      Final image must be indistinguishable from a real photograph taken in a passport photo studio.`,
+      Ensure the final result looks exactly like a real studio passport photograph, as accepted by government authorities.`,
     },
     on: {
       USER_INIT: {
@@ -114,12 +100,40 @@ export default class StateService {
     },
   });
 
+  private parsePromptWithParameters(
+    prompt: string,
+    parameters: State['parameters'],
+  ) {
+    const map: Record<string, string> = {
+      backgroundColor: `- Background color: ${parameters.backgroundColor.join(' or ')}`,
+      size: `- Size: ${parameters.size}`,
+      headHeight: `- Head size: ${parameters.headHeight}`,
+    };
+
+    const userAddition = `7. User Customizations (must still comply with all above passport requirements):
+   ${Object.keys(parameters)
+     .map((e) => map[e])
+     .join('\n')}
+
+    CRITICAL: All customizations must maintain strict compliance with passport photo standards above. 
+    If any user request conflicts with passport requirements, prioritize the passport specifications.`;
+
+    return `${prompt} ${userAddition}`;
+  }
+
   private generatePassport = fromCallback<
     EventObject,
-    { image: Express.Multer.File; prompt: string }
+    {
+      image: Express.Multer.File;
+      prompt: string;
+      parameters: State['parameters'];
+    }
   >(({ input, sendBack, self }) => {
     this.aiService
-      .generateImageFromTextAndImage(input.image, input.prompt)
+      .generateImageFromTextAndImage(
+        input.image,
+        this.parsePromptWithParameters(input.prompt, input.parameters),
+      )
       .then((imageString) =>
         sendBack({
           type: 'GENERATION_COMPLETE',
@@ -251,7 +265,11 @@ export default class StateService {
                   const requestId = `req-${Date.now()}-${uniqueId()}`;
                   const requestActor = spawn('generatePassport', {
                     id: requestId,
-                    input: { image: context.userPhoto!, prompt },
+                    input: {
+                      image: context.userPhoto!,
+                      prompt,
+                      parameters: context.parameters,
+                    },
                   });
                   newRequests.push({ id: requestId, actor: requestActor });
                 }
