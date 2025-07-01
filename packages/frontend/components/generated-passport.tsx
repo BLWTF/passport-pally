@@ -121,7 +121,7 @@ export default function GeneratedPassportPhoto({
             w="100%"
             position="absolute"
             bottom={0}
-            bg="linear-gradient(to bottom, transparent 10%, black 75%)"
+            bg="linear-gradient(to bottom, transparent, black 75%)"
             transition="ease-in-out 0.1s"
             display="flex"
             alignItems="end"

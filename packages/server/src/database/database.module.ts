@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import AppStateEntity from 'src/state/state.entity';
 import UserEntity from 'src/user/user.entity';
 
 @Module({
@@ -10,7 +11,7 @@ import UserEntity from 'src/user/user.entity';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const DBType: 'mysql' = configService.get('DB_TYPE')!;
-        const entities = [UserEntity];
+        const entities = [UserEntity, AppStateEntity];
 
         // if (configService.get('NODE_ENV') === 'production') {
         //   return {

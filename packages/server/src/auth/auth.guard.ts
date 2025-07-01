@@ -20,7 +20,6 @@ export default class AuthGuard implements CanActivate {
     ]);
 
     const request: Request = context.switchToHttp().getRequest();
-    // const response: Response = context.switchToHttp().getResponse();
 
     const user = request['user'];
 

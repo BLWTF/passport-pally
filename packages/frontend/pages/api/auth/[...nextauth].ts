@@ -1,4 +1,4 @@
-import { tempLoginUser } from "@/lib/api/users";
+import { googleSignIn, loginUser, tempLoginUser } from "@/lib/api/users";
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
@@ -23,14 +23,20 @@ export const authOptions: NextAuthOptions = {
         },
         password: { label: "Password", type: "password" },
       },
-      async authorize() {
-        // if (!credentials?.identifier) {
-        //   console.log("ahah");
-        // }
+      async authorize(credentials) {
         try {
-          const user = await tempLoginUser();
+          if (credentials?.identifier) {
+            const user = await loginUser({
+              identifier: credentials.identifier,
+              password: credentials.password,
+            });
 
-          return { ...user };
+            return { ...user };
+          } else {
+            const user = await tempLoginUser();
+
+            return { ...user };
+          }
         } catch (error) {
           console.error(error);
           // return null;
@@ -40,23 +46,23 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ user, token, trigger, session }) {
+    async jwt({ user, token, trigger, session, account, profile }) {
       if (user) {
         token.user = user;
       }
-      // if (account?.provider === 'google') {
-      //   const resUser = await googleSignIn({
-      //     googleProviderAccountId: profile?.sub,
-      //     email: profile?.email,
-      //     firstName: profile?.name!.split(" ")[0],
-      //     lastName: profile?.name!.split(" ")[1],
-      //   });
 
-      //   token.user = { ...resUser };
-      // }
+      if (account?.provider === "google") {
+        const resUser = await googleSignIn({
+          googleProviderAccountId: profile?.sub,
+          email: profile?.email,
+          firstName: profile?.name!.split(" ")[0],
+          lastName: profile?.name!.split(" ")[1],
+        });
+
+        token.user = { ...resUser };
+      }
 
       if (trigger === "update" && session.user) {
-        // Note, that `session` can be any arbitrary object, remember to validate it!
         token.user = { ...(token.user as object), ...session.user };
       }
       return token;

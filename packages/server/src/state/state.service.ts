@@ -2,26 +2,54 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { uniqueId } from 'lodash';
 import AiService from 'src/ai/ai.service';
 import { State } from 'src/types/users';
+import { Repository } from 'typeorm';
 import {
   AnyActorRef,
   assign,
   createActor,
   EventObject,
   fromCallback,
+  fromPromise,
   log,
   setup,
   stopChild,
 } from 'xstate';
+import AppStateEntity from './state.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import UserService from 'src/user/user.service';
 
 @Injectable()
-export default class StateService {
-  constructor(private readonly aiService: AiService) {
+export default class StateService implements OnModuleInit {
+  constructor(
+    @InjectRepository(AppStateEntity)
+    private readonly appStateRepository: Repository<AppStateEntity>,
+    private readonly aiService: AiService,
+    private readonly userService: UserService,
+  ) {}
+
+  onModuleInit() {
     this.appActor = createActor(this.stateMachine);
     this.appActor.start();
+  }
+
+  async persistState() {
+    const state = JSON.stringify(this.appActor.getPersistedSnapshot());
+    await this.saveAppState(state);
+  }
+
+  async getAppState() {
+    const state = (await this.appStateRepository.findOne({ where: { id: 1 } }))
+      ?.state;
+
+    return state;
+  }
+
+  async saveAppState(state: string) {
+    await this.appStateRepository.upsert({ id: 1, state }, ['id']);
   }
 
   initUser(id: string) {
@@ -42,7 +70,14 @@ export default class StateService {
 
   appActor: AnyActorRef;
 
-  private stateMachine = setup({}).createMachine({
+  private initializeUsers = fromPromise(async ({ self }) => {
+    const ids = await this.userService.getUserIds();
+    self._parent!.send({ type: 'INIT_USERS', ids });
+  });
+
+  private stateMachine = setup({
+    actors: { initializeUsers: this.initializeUsers },
+  }).createMachine({
     id: 'main',
     context: {
       prompt: `Create a realistic, studio-quality passport photograph using the provided face. 
@@ -87,15 +122,42 @@ export default class StateService {
 
       Ensure the final result looks exactly like a real studio passport photograph, as accepted by government authorities.`,
     },
-    on: {
-      USER_INIT: {
-        actions: [
-          assign({
-            ref: ({ spawn, event }) =>
-              spawn(this.userMachine, { id: event.id, systemId: event.id }),
-          }),
-          log(({ event }) => `${event.id} init`),
-        ],
+    initial: 'init',
+    states: {
+      init: {
+        invoke: {
+          id: 'initUsers',
+          src: 'initializeUsers',
+          onDone: {
+            target: 'ready',
+          },
+        },
+        on: {
+          INIT_USERS: {
+            actions: [
+              assign({
+                ref: ({ spawn, event }) =>
+                  (event.ids as []).map((id) =>
+                    spawn(this.userMachine, { id, systemId: id }),
+                  ),
+              }),
+              log(({ event }) => `${(event.ids as []).join(', ')} init`),
+            ],
+          },
+        },
+      },
+      ready: {
+        on: {
+          USER_INIT: {
+            actions: [
+              assign({
+                ref: ({ spawn, event }) =>
+                  spawn(this.userMachine, { id: event.id }),
+              }),
+              log(({ event }) => `${event.id} init`),
+            ],
+          },
+        },
       },
     },
   });
@@ -187,10 +249,9 @@ export default class StateService {
       userPhoto: null,
       generatedPhotos: [],
       generationRequests: [],
-      error: null,
-      selectedPhoto: null,
+      noToGenerate: 2,
+      limit: 6,
       parameters: {
-        noToGenerate: 3,
         country: undefined,
         size: undefined,
         headHeight: undefined,
@@ -216,7 +277,6 @@ export default class StateService {
             target: 'photoUploaded',
             actions: assign({
               userPhoto: ({ event }) => event.photo,
-              error: null,
             }),
           },
         },
@@ -242,7 +302,6 @@ export default class StateService {
             target: 'idle',
             actions: assign({
               userPhoto: null,
-              error: null,
             }),
           },
         },
@@ -252,16 +311,18 @@ export default class StateService {
         states: {
           generationStart: {
             entry: assign({
+              limit: ({ context }) => context.limit--,
               generationRequests: ({ context, spawn, self }) => {
                 const parent = self._parent;
                 const prompt = parent?.getSnapshot().context.prompt as string;
 
+                const noToGenerate =
+                  context.generatedPhotos.length === 0
+                    ? context.noToGenerate
+                    : 2;
+
                 const newRequests: any[] = [];
-                for (
-                  let i = 0;
-                  i < (context.parameters?.noToGenerate ?? 3);
-                  i++
-                ) {
+                for (let i = 0; i < noToGenerate; i++) {
                   const requestId = `req-${Date.now()}-${uniqueId()}`;
                   const requestActor = spawn('generatePassport', {
                     id: requestId,
@@ -276,35 +337,32 @@ export default class StateService {
 
                 return [...context.generationRequests, ...newRequests];
               },
-              error: null,
             }),
+            guard: ({ context }) => {
+              return context.limit !== 0;
+            },
           },
           generationComplete: {
             guard: ({ context }) => {
               return context.generationRequests.length === 0;
             },
             on: {
-              GENERATE_ANOTHER: {
+              GENERATE_MORE: {
+                actions: [
+                  assign({
+                    generationRequests: ({ context }) =>
+                      context.generationRequests.filter((e) => !e.error),
+                  }),
+                ],
                 target: 'generationStart',
               },
               DOWNLOAD_PHOTO: {},
-            },
-          },
-          generationError: {
-            entry: log(''),
-            guard: ({ context }) => {
-              return (
-                context.generationRequests.length === 0 &&
-                context.generatedPhotos.length === 0
-              );
             },
           },
           generationReset: {
             entry: assign({
               userPhoto: null,
               generatedPhotos: [],
-              selectedPhoto: null,
-              error: null,
             }),
             target: 'idle',
           },
@@ -329,15 +387,21 @@ export default class StateService {
           GENERATION_ERROR: {
             actions: [
               assign({
-                error: ({ event }) => event.error,
-                generationRequests: ({ context, event }) =>
-                  context.generationRequests.filter(
+                generationRequests: ({ context, event }) => [
+                  ...context.generationRequests.filter(
                     (req) => req.id !== event.requestId,
                   ),
+                  {
+                    ...context.generationRequests.find(
+                      (e) => e.id === event.requestId,
+                    )!,
+                    error: event.error,
+                  },
+                ],
               }),
               log(({ event }) => `Error: ${event.error}`),
             ],
-            target: '.generationError',
+            target: '.generationComplete',
           },
           STOP_GENERATION: {
             actions: assign({

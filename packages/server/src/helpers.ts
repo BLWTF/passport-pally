@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 export function wait(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
@@ -19,9 +21,16 @@ export function base64toBlob(base64: string, fn: (result: string) => void) {
   reader.readAsDataURL(new Blob([buffer]));
 }
 
-export function parseState(state: string | object) {
-  if (typeof state === 'object') {
-    return Object.keys(state)[0];
+export function parseStateValue(stateValue: string | object) {
+  if (typeof stateValue === 'object') {
+    return Object.keys(stateValue)[0];
   }
-  return state;
+  return stateValue;
+}
+
+export function parseAdminState(state: any) {
+  return {
+    prompt: state.context.prompt,
+    users: Object.values(state.children as object),
+  };
 }

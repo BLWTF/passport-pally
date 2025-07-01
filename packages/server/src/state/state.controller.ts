@@ -8,15 +8,19 @@ import {
   MessageEvent,
   Post,
   Req,
+  Res,
   Sse,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import StateService from './state.service';
-import { parseState } from 'src/helpers';
+import { parseAdminState, parseStateValue } from 'src/helpers';
 import { State, UserState } from 'src/types/users';
 import { Observable, from, map } from 'rxjs';
+import AdminGuard from 'src/auth/admin.guard';
+import { Response } from 'express';
 
 @Controller()
 export default class StateController {
@@ -31,7 +35,7 @@ export default class StateController {
         const userState = {
           ...state.context,
           userPhoto: state.context.userPhoto?.originalname ?? null,
-          value: parseState(state.value),
+          value: parseStateValue(state.value),
         };
 
         return { id: new Date().getTime().toString(), data: userState };
@@ -39,41 +43,48 @@ export default class StateController {
     );
   }
 
-  // @Get('/state')
-  // userState(@Req() req: any, @Res() res: Response) {
-  //   const userActor = this.stateService.activeUser(req.user.sub);
-
-  //   res.set({
-  //     'Cache-Control': 'no-cache',
-  //     'Content-Type': 'text/event-stream',
-  //     Connection: 'keep-alive',
-  //   });
-  //   res.flushHeaders();
-
-  //   res.write('retry: 10000\n\n');
-
-  //   const subscription = userActor.subscribe((state) => {
-  //     const userState = {
-  //       ...state.context,
-  //       userPhoto: state.context.userPhoto?.originalname ?? null,
-  //       value: parseState(state.value),
-  //     };
-
-  //     res.write(`data: ${JSON.stringify(userState)}\n\n`);
-  //   });
-
-  //   res.on('close', () => {
-  //     subscription.unsubscribe();
-  //     res.end();
-  //   });
+  // @Sse('/admin/state')
+  // @UseGuards(new AdminGuard())
+  // adminSse(): Observable<MessageEvent> {
+  //   return from(this.stateService.appActor).pipe(
+  //     map((state) => {
+  //       return { id: new Date().getTime().toString(), data: state };
+  //     }),
+  //   );
   // }
+
+  @Get('/admin/state')
+  @UseGuards(new AdminGuard())
+  userState(@Res() res: Response) {
+    res.set({
+      'Cache-Control': 'no-cache',
+      'Content-Type': 'text/event-stream',
+      Connection: 'keep-alive',
+    });
+    res.flushHeaders();
+
+    res.write('retry: 10000\n\n');
+
+    res.write(
+      `data: ${JSON.stringify(parseAdminState(this.stateService.appActor.getSnapshot()))}\n\n`,
+    );
+
+    const subscription = this.stateService.appActor.subscribe((state) => {
+      res.write(`data: ${JSON.stringify(parseAdminState(state))}\n\n`);
+    });
+
+    res.on('close', () => {
+      subscription.unsubscribe();
+      res.end();
+    });
+  }
 
   @Get('/state/preview')
   userStatePreview(@Req() req: any) {
     const userActor = this.stateService.activeUser(req.user.sub);
     const userState: UserState = {
       ...userActor.getSnapshot().context,
-      value: parseState(userActor.getSnapshot().value),
+      value: parseStateValue(userActor.getSnapshot().value),
     };
     const userStatePreview = {
       ...userState,
@@ -102,6 +113,26 @@ export default class StateController {
       .activeUser(req.user.sub)
       .send({ type: 'UPLOAD_PHOTO', photo: file });
 
+    return {};
+  }
+
+  @Get('/reset-user-photo')
+  reset(@Req() req: any) {
+    this.stateService.activeUser(req.user.sub).send({ type: 'RESET' });
+    return {};
+  }
+
+  @Get('/generate-more')
+  generateMore(@Req() req: any) {
+    this.stateService.activeUser(req.user.sub).send({ type: 'GENERATE_MORE' });
+    return {};
+  }
+
+  @Get('/cancel-generation')
+  cancelGeneration(@Req() req: any) {
+    this.stateService
+      .activeUser(req.user.sub)
+      .send({ type: 'CANCEL_GENERATION' });
     return {};
   }
 }

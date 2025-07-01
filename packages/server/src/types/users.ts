@@ -4,21 +4,27 @@ export interface User {
   id: string;
   googleProviderAccountId?: string;
   email?: string;
+  role: 'admin' | 'user';
+  password?: string;
+  lastName?: string;
+  firstName?: string;
+  username?: string;
+  createdAt: Date;
 }
 
 export interface AuthUser extends User {
   accessToken?: string;
   blocked?: boolean;
+  sub: string;
 }
 
 export interface State {
   userPhoto: Express.Multer.File | null;
-  selectedPhoto: string | null;
   generatedPhotos: { id: string; data: string }[];
-  error: string | null;
-  generationRequests: { id: string; actor: AnyActorRef }[];
+  generationRequests: { id: string; actor: AnyActorRef; error?: any }[];
+  noToGenerate: number;
+  limit: number;
   parameters: {
-    noToGenerate?: number;
     country?: string;
     size?: string;
     headHeight?: string;

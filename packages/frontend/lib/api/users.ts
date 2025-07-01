@@ -1,6 +1,31 @@
 import apiFetch from "../api-fetch";
 import { UserState } from "../types/users";
 
+export async function googleSignIn({
+  googleProviderAccountId,
+  email,
+  lastName,
+  firstName,
+}: {
+  googleProviderAccountId?: string;
+  email?: string;
+  lastName?: string;
+  firstName?: string;
+}) {
+  try {
+    const data = await apiFetch("/login", "POST", {
+      googleProviderAccountId,
+      email,
+      lastName,
+      firstName,
+    });
+
+    return data;
+  } catch (error) {
+    throw (error as { error: string }).error;
+  }
+}
+
 export async function loginUser({
   identifier,
   password,

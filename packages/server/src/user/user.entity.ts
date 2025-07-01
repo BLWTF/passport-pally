@@ -1,3 +1,4 @@
+import { User } from 'src/types/users';
 import {
   Column,
   CreateDateColumn,
@@ -8,15 +9,30 @@ import {
 @Entity({
   name: 'users',
 })
-export default class UserEntity {
+export default class UserEntity implements User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ nullable: true })
   googleProviderAccountId?: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, unique: true })
   email?: string;
+
+  @Column({ nullable: true, unique: true })
+  username?: string;
+
+  @Column({ nullable: true })
+  lastName?: string;
+
+  @Column({ nullable: true })
+  firstName?: string;
+
+  @Column({ nullable: true })
+  password?: string;
+
+  @Column({ type: 'enum', enum: ['admin', 'user'], default: 'user' })
+  role: User['role'];
 
   @CreateDateColumn()
   createdAt: Date;

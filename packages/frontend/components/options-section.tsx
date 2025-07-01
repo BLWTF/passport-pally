@@ -80,12 +80,15 @@ const countrySpecs = [
 export default function OptionsSection({
   imagePreview,
   isUploading,
+  handleReset,
 }: {
   imagePreview?: string;
   isUploading: boolean;
+  handleReset: () => Promise<void>;
 }) {
   const { authFetch } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isReseting, setIsReseting] = useState(false);
   const [selectedSpec, setSelectedSpec] = useState<{
     ico: string;
     country: string;
@@ -105,8 +108,12 @@ export default function OptionsSection({
     e.preventDefault();
     setIsGenerating(true);
 
-    console.log('selectedSpec', selectedSpec);
     await authFetch("/generate", "POST", selectedSpec);
+  };
+
+  const handleResetExt = async () => {
+    setIsReseting(true);
+    await handleReset();
   };
 
   const colors: Record<string, string> = {
@@ -159,7 +166,7 @@ export default function OptionsSection({
             />
           </FormControl>
 
-          <FormControl isRequired>
+          <FormControl>
             <FormLabel>Head Height (mm)</FormLabel>
             <Input
               name="headHeight"
@@ -169,7 +176,7 @@ export default function OptionsSection({
             />
           </FormControl>
 
-          <FormControl isRequired>
+          <FormControl>
             <FormLabel>Background Color</FormLabel>
             <Flex gap={2}>
               {Object.keys(colors).map((color) => (
@@ -202,15 +209,26 @@ export default function OptionsSection({
             </Flex>
           </FormControl>
 
-          <Button
-            type="submit"
-            size="lg"
-            width="100%"
-            isLoading={isGenerating}
-            loadingText="Generating"
-          >
-            Generate Passport Photo
-          </Button>
+          <VStack width="100%">
+            <Button
+              type="submit"
+              variant="secondary"
+              size="lg"
+              width="100%"
+              isLoading={isGenerating}
+              loadingText="Generating"
+            >
+              Proceed to Generate
+            </Button>
+            <Button
+              width="50%"
+              isLoading={isReseting}
+              loadingText="Reseting"
+              onClick={() => handleResetExt()}
+            >
+              Reset
+            </Button>
+          </VStack>
         </VStack>
       </Box>
 

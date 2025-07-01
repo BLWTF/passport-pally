@@ -62,75 +62,85 @@ const UploadArea = ({
       borderStyle="dashed"
       borderWidth="medium"
       borderRadius="lg"
+      minW={{ base: "300px", md: "500px" }}
     >
       <VStack spacing={4}>
-        <Box as="label" htmlFor="file-upload" cursor="pointer" w="100%">
-          <Heading size="md" mb={2}>
-            Upload Photo
-          </Heading>
-          <Text
-            display={{ base: "block", lg: "none" }}
-            fontSize="sm"
-            color="gray.400"
-            mt={2}
-          >
-            Tap to upload an image from your device
-          </Text>
-          <Text
-            display={{ base: "none", lg: "block" }}
-            fontSize="sm"
-            color="gray.400"
-            mt={2}
-          >
-            Drag and drop your image here, or click to select
-          </Text>
-        </Box>
-        <Flex gap={2}>
-          <Box display={{ base: "block", lg: "none" }}>
-            <Input
-              ref={takePhotoRef}
-              type="file"
-              accept="image/*"
-              onChange={handleChange}
-              id="image-capture"
-              capture="user"
-              hidden
-            />
-            <Button
-              size="sm"
-              onClick={() => takePhotoRef.current?.click()}
-              leftIcon={<CameraIcon />}
-            >
-              Take a picture
-            </Button>
-          </Box>
-          <Box>
-            <Input
-              ref={selectPhotoRef}
-              type="file"
-              accept="image/*"
-              onChange={handleChange}
-              id="file-upload"
-              hidden
-            />
-            <Button
-              size="sm"
-              onClick={() => selectPhotoRef.current?.click()}
-              leftIcon={<FolderOpen />}
-            >
-              Choose picture
-            </Button>
-          </Box>
-        </Flex>
+        {!isUploading && (
+          <>
+            <Box as="label" htmlFor="file-upload" cursor="pointer" w="100%">
+              <Heading size="md" mb={2}>
+                Upload Photo
+              </Heading>
+              <Text
+                display={{ base: "block", lg: "none" }}
+                fontSize="sm"
+                color="gray.400"
+                mt={2}
+              >
+                Tap to upload an image from your device
+              </Text>
+              <Text
+                display={{ base: "none", lg: "block" }}
+                fontSize="sm"
+                color="gray.400"
+                mt={2}
+              >
+                Drag and drop your image here, or click to select
+              </Text>
+            </Box>
+            <Flex gap={2}>
+              <Box display={{ base: "block", lg: "none" }}>
+                <Input
+                  ref={takePhotoRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleChange}
+                  id="image-capture"
+                  capture="user"
+                  hidden
+                />
+                <Button
+                  size="sm"
+                  onClick={() => takePhotoRef.current?.click()}
+                  leftIcon={<CameraIcon />}
+                >
+                  Take a picture
+                </Button>
+              </Box>
+              <Box>
+                <Input
+                  ref={selectPhotoRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleChange}
+                  id="file-upload"
+                  hidden
+                />
+                <Button
+                  size="sm"
+                  onClick={() => selectPhotoRef.current?.click()}
+                  leftIcon={<FolderOpen />}
+                >
+                  Choose picture
+                </Button>
+              </Box>
+            </Flex>
+          </>
+        )}
 
         {isUploading && (
-          <Progress
-            size="sm"
-            isIndeterminate
-            colorScheme="blue"
-            w="100%"
-            mt={4}
-          />
+          <>
+            <Heading size="md" mb={2}>
+                Uploading...
+              </Heading>
+            <Progress
+              size="sm"
+              isIndeterminate
+              colorScheme="brand"
+              w="100%"
+              mt={4}
+            />
+          </>
         )}
       </VStack>
     </Box>

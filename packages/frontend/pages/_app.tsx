@@ -1,3 +1,4 @@
+import Scaffold from "@/components/scaffold";
 import theme from "@/lib/theme";
 import "@/styles/globals.css";
 import { ChakraProvider } from "@chakra-ui/react";
@@ -28,7 +29,9 @@ export default function App({ Component, pageProps }: AppProps) {
       </style>
       <ChakraProvider theme={theme}>
         <SessionProvider>
-          <Component {...pageProps} />
+          <Scaffold>
+            <Component {...pageProps} />
+          </Scaffold>
         </SessionProvider>
       </ChakraProvider>
     </>

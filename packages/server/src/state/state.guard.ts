@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Request, Response } from 'express';
 import StateService from './state.service';
+import { AuthUser } from 'src/types/users';
 
 @Injectable()
 export default class StateGuard implements CanActivate {
@@ -11,11 +10,10 @@ export default class StateGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request: Request = context.switchToHttp().getRequest();
-    // const response: Response = context.switchToHttp().getResponse();
 
-    const user = request['user'];
+    const user: AuthUser = request['user'];
 
-    if (user) {
+    if (user && user.role !== 'admin') {
       this.stateService.initUser(user.sub);
     }
 

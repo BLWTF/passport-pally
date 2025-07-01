@@ -24,6 +24,11 @@ import {
   SimpleGrid,
   Spinner,
   Skeleton,
+  Alert,
+  AlertTitle,
+  AlertIcon,
+  AlertDescription,
+  Link,
 } from "@chakra-ui/react";
 import { getServerSession } from "next-auth";
 import { signIn } from "next-auth/react";
@@ -33,7 +38,7 @@ import { authOptions } from "./api/auth/[...nextauth]";
 import { AuthSession } from "@/lib/types/session";
 import { getUserStatePreview } from "@/lib/api/users";
 import GeneratedPassportPhoto from "@/components/generated-passport";
-import { ArrowBigDown } from "lucide-react";
+import { ArrowBigDown, AlertCircleIcon, RotateCcwIcon } from "lucide-react";
 import useIndexedDB from "@/lib/hooks/useIndexedDB";
 import Logo from "@/components/logo";
 import OptionsSection from "@/components/options-section";
@@ -50,6 +55,15 @@ export async function getServerSideProps({
   const user = session?.user;
 
   if (user) {
+    if (user.role === "admin") {
+      return {
+        redirect: {
+          destination: "/admin",
+          permanent: false,
+        },
+      };
+    }
+
     try {
       const statePreview = await getUserStatePreview(user.accessToken!);
       return {
@@ -72,9 +86,7 @@ export default function Index({
 }: {
   statePreview?: UserStatePreview;
 }) {
-  console.log("statePreview", statePreview);
   const { session, isUnauthenticated, authFetch } = useAuth();
-  console.log(session);
   const user = session?.user;
   const { error, setValue, getValue, deleteValue } = useIndexedDB();
   const { data: userStateStream } = useSSE<UserStatePreview>(
@@ -83,10 +95,10 @@ export default function Index({
   const [uploadedImage, setUploadedImage] = useState<File>();
   const [imagePreview, setImagePreview] = useState<string>();
   const [isUploading, setIsUploading] = useState(false);
+  const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const [uploadError, setUploadError] = useState<string>();
   const toast = useToast();
   const userState = userStateStream ?? statePreview;
-  console.log("userState", userState);
   const MAX_SIZE = 10 * 1024 * 1024;
 
   useEffect(() => {
@@ -151,9 +163,21 @@ export default function Index({
     }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
+    await authFetch("/reset-user-photo", "GET");
+
     setUploadedImage(undefined);
     setImagePreview(undefined);
+  };
+
+  const handleGenerateMore = async () => {
+    setIsGeneratingMore(true);
+    await authFetch("/generate-more", "GET");
+    setIsGeneratingMore(false);
+  };
+
+  const handleCancelGeneration = async () => {
+    await authFetch("/cancel-generation", "GET");
   };
 
   return (
@@ -162,11 +186,6 @@ export default function Index({
         <Container maxW="container.xl">
           <Flex alignItems="center" justifyContent="space-between">
             <Logo />
-            <HStack spacing={4}>
-              <Button variant="ghost" _hover={{ bg: "whiteAlpha.200" }}>
-                Pricing
-              </Button>
-            </HStack>
           </Flex>
         </Container>
       </Box>
@@ -196,6 +215,7 @@ export default function Index({
                 <OptionsSection
                   imagePreview={imagePreview}
                   isUploading={isUploading}
+                  handleReset={handleReset}
                 />
               )}
 
@@ -251,18 +271,55 @@ export default function Index({
                           image={generatedPhoto}
                         />
                       ))}
-                      {userState.generationRequests.map((generationRequest) => (
-                        <GeneratedPassportPhoto key={generationRequest.id} />
-                      ))}
+                      {userState.generationRequests.some((e) => !e.error) && (
+                        <>
+                          {userState.generationRequests.map(
+                            (generationRequest) => (
+                              <GeneratedPassportPhoto
+                                key={generationRequest.id}
+                              />
+                            )
+                          )}
+                        </>
+                      )}
                     </SimpleGrid>
+                    {userState.generationRequests.length > 0 &&
+                      !userState.generationRequests.some((e) => !e.error) && (
+                        <Alert status="warning" w="100%" rounded="md">
+                          <VStack align="start">
+                            <Flex>
+                              <AlertIcon>
+                                <AlertCircleIcon />
+                              </AlertIcon>
+                              <AlertTitle>Request Failed</AlertTitle>
+                            </Flex>
+                            <AlertDescription>
+                              Something went wrong, please{" "}
+                              <Link
+                                textColor="blue.500"
+                                onClick={() => handleGenerateMore()}
+                              >
+                                try again <RotateCcwIcon />
+                              </Link>
+                            </AlertDescription>
+                          </VStack>
+                        </Alert>
+                      )}
                   </Flex>
 
                   <VStack spacing={4} w="100%" maxW="400px">
-                    <Button
-                      variant="ghost"
-                      colorScheme="blue"
-                    >
-                      Create Another Photo
+                    {userState.generationRequests.length === 0 && (
+                      <Button
+                        w="100%"
+                        onClick={() => handleGenerateMore()}
+                        isLoading={isGeneratingMore}
+                        loadingText="Generating More"
+                      >
+                        Generate More
+                      </Button>
+                    )}
+                    <Button onClick={() => handleCancelGeneration()}>
+                      Back to options
                     </Button>
                   </VStack>
                 </VStack>
@@ -420,7 +477,6 @@ export default function Index({
         )} */}
       </Container>
 
-      {/* Footer */}
       <Box mt={20} bg="gray.800" color="white" py={10}>
         <Container maxW="container.xl">
           <Flex
@@ -432,7 +488,7 @@ export default function Index({
             <VStack align="start" spacing={4} maxW="320px">
               <Logo />
               <Text color="gray.400">
-                Create professional passport and ID photos that meet official
+                Create professional passport photographs that meet official
                 requirements in seconds with our AI-powered tool.
               </Text>
             </VStack>

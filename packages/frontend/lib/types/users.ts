@@ -2,10 +2,15 @@ export interface User {
   id: string;
   googleProviderAccountId?: string;
   email?: string;
+  role: "admin" | "user";
+  password?: string;
+  lastName?: string;
+  firstName?: string;
+  username?: string;
+  createdAt: Date;
 }
 
 export interface AuthUser extends User {
-  sub: string;
   accessToken?: string;
   blocked?: boolean;
 }
@@ -14,21 +19,30 @@ export interface State {
   userPhoto: Express.Multer.File | null;
   selectedPhoto: string | null;
   generatedPhotos: { id: string; data: string }[];
-  error: string | null;
-  generationRequests: { id: string; actor: object }[];
+  generationRequests: { id: string; actor: object; error?: object }[];
+  noToGenerate: number;
   parameters: {
-    backgroundColor: string;
-    facePosition: string;
-    photoSize: string;
-    countryFormat: string;
+    country?: string;
+    size?: string;
+    headHeight?: string;
+    eyePosition?: string;
+    backgroundColor: string[];
   };
+}
+
+export interface AdminState {
+  prompt: string;
+  users: { id: string }[];
 }
 
 export interface UserState extends State {
   value: string;
 }
 
-export type UserStatePreview = Omit<UserState, 'userPhoto | generatedPhotos'> & {
+export type UserStatePreview = Omit<
+  UserState,
+  "userPhoto | generatedPhotos"
+> & {
   userPhoto: string;
-  generatedPhotos: { id: string, data: string}[];
-}
+  generatedPhotos: { id: string; data: string }[];
+};
