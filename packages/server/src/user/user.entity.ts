@@ -1,4 +1,4 @@
-import { User } from 'src/types/users';
+import { User, UserRole } from 'src/types/users';
 import {
   Column,
   CreateDateColumn,
@@ -31,8 +31,8 @@ export default class UserEntity implements User {
   @Column({ nullable: true })
   password?: string;
 
-  @Column({ type: 'enum', enum: ['admin', 'user'], default: 'user' })
-  role: User['role'];
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
+  role: UserRole;
 
   @CreateDateColumn()
   createdAt: Date;

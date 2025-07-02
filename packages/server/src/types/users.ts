@@ -1,10 +1,15 @@
 import { AnyActorRef } from 'xstate';
 
+export enum UserRole {
+  ADMIN = 'admin',
+  USER = 'user',
+}
+
 export interface User {
   id: string;
   googleProviderAccountId?: string;
   email?: string;
-  role: 'admin' | 'user';
+  role: UserRole;
   password?: string;
   lastName?: string;
   firstName?: string;

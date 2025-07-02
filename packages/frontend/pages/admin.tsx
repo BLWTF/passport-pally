@@ -24,10 +24,42 @@ import { ChangeEvent, FormEvent, useState } from "react";
 import NextLink from "next/link";
 import useSSE from "@/lib/hooks/useSSE";
 import { AdminState } from "@/lib/types/users";
+import { GetServerSidePropsContext } from "next/types";
+import { AuthSession } from "@/lib/types/session";
+import { getServerSession } from "next-auth";
+import { authOptions } from "./api/auth/[...nextauth]";
+
+export async function getServerSideProps({
+  req,
+  res,
+}: GetServerSidePropsContext) {
+  const session: AuthSession | null = await getServerSession(
+    req,
+    res,
+    authOptions
+  );
+  const user = session?.user;
+
+  if (user) {
+    if (user.role !== "admin") {
+      return {
+        redirect: {
+          destination: '/',
+          permanent: false,
+        },
+      };
+    }
+  }
+
+  return {
+    props: {},
+  };
+}
+
 
 export default function Admin() {
-  const { isLoading, isUnauthenticated, isAuthenticated } =
-    useAuth();
+  const { session, isLoading, isUnauthenticated, isAuthenticated } = useAuth();
+  console.log(session);
   const [inputs, setInputs] = useState({ identifier: "", password: "" });
   const [isSigningIn, setIsSigningIn] = useState(false);
   const toast = useToast();
@@ -174,7 +206,6 @@ export default function Admin() {
                     <StatNumber>{adminState?.users.length}</StatNumber>
                   </Stat>
                 </Box>
-
               </Box>
             )}
           </>

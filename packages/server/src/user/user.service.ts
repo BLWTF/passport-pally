@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import AuthService from 'src/auth/auth.service';
 import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
-import { User } from 'src/types/users';
+import { User, UserRole } from 'src/types/users';
 
 @Injectable()
 export default class UserService {
@@ -117,7 +117,7 @@ export default class UserService {
     const ids = await this.userRepository
       .createQueryBuilder('user')
       .select('user.id')
-      .where('user.role != "admin"')
+      .where('user.role != :role', { role: UserRole.ADMIN })
       .getMany();
     const idValues = ids.map((item) => item.id);
     return idValues;
